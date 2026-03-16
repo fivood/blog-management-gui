@@ -40,16 +40,25 @@ export const ProjectSwitcher: React.FC = () => {
     }
   };
 
-  // Map absolute paths to display names
-  const getProjectName = (path: string) => {
-    if (path.toLowerCase().includes('fukkiorg')) return '有空写点';
-    if (path.toLowerCase().includes('blog')) return '废物德森林';
-    return path.split(/[\\/]/).pop() || path;
+  const getProjectLabel = (projectPath: string) => {
+    const lower = projectPath.toLowerCase();
+    const name = lower.includes('fukkiorg')
+      ? '有空写点'
+      : lower.includes('blog')
+        ? '废物德森林'
+        : (projectPath.split(/[\\/]/).pop() || projectPath);
+
+    const segments = projectPath.split(/[\\/]/).filter(Boolean);
+    const parent = segments.length >= 2 ? segments[segments.length - 2] : '';
+    const suffix = parent ? ` (${parent})` : '';
+    const display = `${name}${suffix}`;
+
+    return <Text title={projectPath}>{display}</Text>;
   };
 
-  const options = config.recentProjects.map(path => ({
-    label: getProjectName(path),
-    value: path
+  const options = config.recentProjects.map(projectPath => ({
+    label: getProjectLabel(projectPath),
+    value: projectPath
   }));
 
   return (
