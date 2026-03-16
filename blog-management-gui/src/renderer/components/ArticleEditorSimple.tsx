@@ -84,7 +84,8 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
           author: article.author || '',
           slug: article.slug || '',
           publishedAt: article.publishedAt ? dayjs(article.publishedAt) : null,
-          password: '' // Don't populate password for security
+          password: '', // Don't populate password for security
+          passwordHint: article.passwordHint || ''
         });
         setIsPasswordProtected(article.isProtected);
         setIsDirty(false);
@@ -116,7 +117,8 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
           author: values.author?.trim() || undefined,
           slug: values.slug?.trim() || undefined,
           publishedAt: values.publishedAt ? values.publishedAt.toDate() : undefined,
-          password: isPasswordProtected ? values.password : undefined
+          password: isPasswordProtected ? values.password : undefined,
+          passwordHint: isPasswordProtected ? (values.passwordHint?.trim() || undefined) : undefined
         };
         result = await updateArticle(targetId, updateData);
       } else {
@@ -129,7 +131,8 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
           author: values.author?.trim() || undefined,
           slug: values.slug?.trim() || undefined,
           publishedAt: values.publishedAt ? values.publishedAt.toDate() : undefined,
-          password: isPasswordProtected ? values.password : undefined
+          password: isPasswordProtected ? values.password : undefined,
+          passwordHint: isPasswordProtected ? (values.passwordHint?.trim() || undefined) : undefined
         };
         result = await createArticle(createData);
         if (result) {
@@ -209,8 +212,9 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
   const handlePasswordProtectionChange = (checked: boolean) => {
     setIsPasswordProtected(checked);
     if (!checked) {
-      // Clear password field when disabling protection
+      // Clear password and password hint fields when disabling protection
       form.setFieldValue('password', undefined);
+      form.setFieldValue('passwordHint', undefined);
     }
     setIsDirty(true);
   };
@@ -315,16 +319,20 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
         <Form.Item
           label="URL 别名（可选）"
           name="slug"
-          tooltip="自定义文章 URL，只能包含小写字母、数字和连字符，留空则使用文章 ID"
+          tooltip="自定义文章 URL，支持中文、英文、数字和连字符，留空则使用文章 ID。示例：我的第一篇博客 或 my-first-blog"
           rules={[
             { 
-              pattern: /^[a-z0-9-]*$/, 
-              message: 'URL 别名只能包含小写字母、数字和连字符' 
+              pattern: /^[\w\-\u4e00-\u9fff]*$/, 
+              message: 'URL 别名只能包含字母、数字、中文、连字符和下划线' 
+            },
+            {
+              max: 200,
+              message: 'URL 别名不能超过200个字符'
             }
           ]}
         >
           <Input 
-            placeholder="自定义文章 URL，如：my-first-blog" 
+            placeholder="自定义文章 URL，如：我的第一篇博客 或 my-first-blog" 
             disabled={loading || isSaving}
           />
         </Form.Item>
@@ -357,19 +365,39 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
         </Form.Item>
 
         {isPasswordProtected && (
-          <Form.Item
-            label="密码"
-            name="password"
-            rules={[
-              { required: true, message: '请输入密码' },
-              { min: 4, message: '密码至少4个字符' }
-            ]}
-          >
-            <Input.Password 
-              placeholder="请输入文章密码（至少4个字符）"
-              disabled={loading || isSaving}
-            />
-          </Form.Item>
+          <>
+            <Form.Item
+              label="密码"
+              name="password"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 2, message: '密码至少2个字符' }
+              ]}
+            >
+              <Input.Password 
+                placeholder={form.getFieldValue('passwordHint') || '请输入文章密码（至少2个字符）'}
+                disabled={loading || isSaving}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="密码提示"
+              name="passwordHint"
+              rules={[
+                { max: 100, message: '提示不能超过100个字符' }
+              ]}
+              help="用户在输入密码框中看到的提示文本（可选）"
+            >
+              <Input 
+                placeholder="如：文章标题拼音首字母、重要日期等"
+                disabled={loading || isSaving}
+                onChange={() => {
+                  // 更新密码输入框的 placeholder
+                  form.getFieldInstance('password')?.focus?.();
+                }}
+              />
+            </Form.Item>
+          </>
         )}
 
         <Form.Item>

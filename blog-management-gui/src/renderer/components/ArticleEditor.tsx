@@ -78,7 +78,8 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCanc
         content: article.content,
         tags: article.tags,
         categories: article.categories,
-        password: '' // Don't populate password for security
+        password: '', // Don't populate password for security
+        passwordHint: article.passwordHint || ''
       });
       setIsPasswordProtected(article.isProtected);
       setIsDirty(false);
@@ -102,7 +103,8 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCanc
           content: values.content.trim(),
           tags: values.tags || [],
           categories: values.categories || [],
-          password: isPasswordProtected ? values.password : undefined
+          password: isPasswordProtected ? values.password : undefined,
+          passwordHint: isPasswordProtected ? (values.passwordHint?.trim() || undefined) : undefined
         };
         result = await updateArticle(articleId, updateData);
       } else {
@@ -112,7 +114,8 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCanc
           content: values.content.trim(),
           tags: values.tags || [],
           categories: values.categories || [],
-          password: isPasswordProtected ? values.password : undefined
+          password: isPasswordProtected ? values.password : undefined,
+          passwordHint: isPasswordProtected ? (values.passwordHint?.trim() || undefined) : undefined
         };
         result = await createArticle(createData);
       }
@@ -157,8 +160,9 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCanc
   const handlePasswordProtectionChange = (checked: boolean) => {
     setIsPasswordProtected(checked);
     if (!checked) {
-      // Clear password field when disabling protection
+      // Clear password and password hint fields when disabling protection
       form.setFieldValue('password', undefined);
+      form.setFieldValue('passwordHint', undefined);
     }
     setIsDirty(true);
   };
@@ -251,19 +255,39 @@ const ArticleEditor: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCanc
         </Form.Item>
 
         {isPasswordProtected && (
-          <Form.Item
-            label="密码"
-            name="password"
-            rules={[
-              { required: true, message: '请输入密码' },
-              { min: 4, message: '密码至少4个字符' }
-            ]}
-          >
-            <Input.Password 
-              placeholder="请输入文章密码（至少4个字符）"
-              disabled={loading || isSaving}
-            />
-          </Form.Item>
+          <>
+            <Form.Item
+              label="密码"
+              name="password"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 2, message: '密码至少2个字符' }
+              ]}
+            >
+              <Input.Password 
+                placeholder={form.getFieldValue('passwordHint') || '请输入文章密码（至少2个字符）'}
+                disabled={loading || isSaving}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="密码提示"
+              name="passwordHint"
+              rules={[
+                { max: 100, message: '提示不能超过100个字符' }
+              ]}
+              help="用户在输入密码框中看到的提示文本（可选）"
+            >
+              <Input 
+                placeholder="如：文章标题拼音首字母、重要日期等"
+                disabled={loading || isSaving}
+                onChange={() => {
+                  // 更新密码输入框的 placeholder
+                  form.getFieldInstance('password')?.focus?.();
+                }}
+              />
+            </Form.Item>
+          </>
         )}
 
         <Form.Item>

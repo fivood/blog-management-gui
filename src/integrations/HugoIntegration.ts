@@ -28,6 +28,9 @@ export class HugoIntegration {
       slug: article.slug,
       description: article.metadata.description,
       keywords: article.metadata.keywords,
+      protected: article.isProtected || undefined,
+      passwordHash: article.passwordHash || undefined,
+      passwordHint: article.passwordHint || undefined,
     };
 
     // Add custom fields if present
@@ -88,9 +91,12 @@ export class HugoIntegration {
     const slug = frontmatter.slug;
     const description = frontmatter.description;
     const keywords = Array.isArray(frontmatter.keywords) ? frontmatter.keywords : [];
+    const isProtected = frontmatter.protected === true || frontmatter.protected === 'true';
+    const passwordHash = frontmatter.passwordHash;
+    const passwordHint = frontmatter.passwordHint;
 
     // Extract custom fields (everything not in standard fields)
-    const standardFields = ['title', 'date', 'lastmod', 'draft', 'tags', 'categories', 'author', 'slug', 'description', 'keywords'];
+    const standardFields = ['title', 'date', 'lastmod', 'draft', 'tags', 'categories', 'author', 'slug', 'description', 'keywords', 'protected', 'passwordHash', 'passwordHint'];
     const customFields: Record<string, any> = {};
     
     Object.keys(frontmatter).forEach(key => {
@@ -114,7 +120,9 @@ export class HugoIntegration {
       publishedAt: isDraft ? undefined : date,
       modifiedAt: lastmod,
       version: 1,
-      isProtected: false,
+      isProtected: isProtected,
+      passwordHash: passwordHash,
+      passwordHint: passwordHint,
       metadata: {
         title,
         description,

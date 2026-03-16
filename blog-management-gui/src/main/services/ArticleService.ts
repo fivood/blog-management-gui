@@ -156,6 +156,7 @@ export class ArticleService {
           const updatedArticle = await this.articleManager.getArticle(articleId);
           updatedArticle.isProtected = false;
           updatedArticle.passwordHash = undefined;
+          updatedArticle.passwordHint = undefined;
           if (updatedArticle.metadata) delete updatedArticle.metadata.plainPassword;
           await (this.articleManager as any).articles.set(articleId, updatedArticle);
         }

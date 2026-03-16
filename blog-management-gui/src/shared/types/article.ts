@@ -16,6 +16,7 @@ export interface Article {
   version: number;
   isProtected: boolean;
   passwordHash?: string;
+  passwordHint?: string;
   metadata: ArticleMetadata;
 }
 
@@ -47,6 +48,7 @@ export interface CreateArticleData {
   slug?: string;
   publishedAt?: Date;
   password?: string;
+  passwordHint?: string;
 }
 
 export interface ArticleUpdate {
@@ -58,6 +60,7 @@ export interface ArticleUpdate {
   slug?: string;
   publishedAt?: Date;
   password?: string;
+  passwordHint?: string;
   isProtected?: boolean;
 }
 
