@@ -46,24 +46,43 @@ export class ConfigService {
    */
   private ensureRecentProjects(): void {
     const config = this.getConfig();
-    if (config.recentProjects.length === 0) {
-      const fs = require('fs');
-      const knownPaths = [
-        'g:\\fivood\\blog',
-        'g:\\fivood\\fukkiorg'
-      ];
-      
-      const validPaths = knownPaths.filter(p => fs.existsSync(p));
-      if (validPaths.length > 0) {
-        console.log('Auto-populating recent projects:', validPaths);
-        this.updateConfig({ 
-          recentProjects: validPaths,
-          // If current path is default/empty, pick the first valid one
-          hugoProjectPath: config.hugoProjectPath.includes('blog-fukki') || !config.hugoProjectPath 
-            ? validPaths[0] 
-            : config.hugoProjectPath
-        });
-      }
+    const fs = require('fs');
+    const knownPaths = [
+      'g:\\fivood\\fivood-fukki\\blog',
+      'g:\\fivood\\fivood-fukki\\fukkiorg',
+      'g:\\fivood\\blog',
+      'g:\\fivood\\fukkiorg'
+    ];
+
+    const validPaths = knownPaths.filter(p => fs.existsSync(p));
+    if (validPaths.length === 0) return;
+
+    const currentRecent = config.recentProjects || [];
+    const missing = validPaths.filter(p => !currentRecent.includes(p));
+
+    // If recent projects is empty, initialize it and optionally pick a sensible default project.
+    if (currentRecent.length === 0) {
+      console.log('Auto-populating recent projects:', validPaths);
+
+      const currentPath = config.hugoProjectPath;
+      const shouldOverrideProjectPath =
+        !currentPath ||
+        (typeof currentPath === 'string' && currentPath.includes('blog-fukki')) ||
+        !fs.existsSync(currentPath);
+
+      this.updateConfig({
+        recentProjects: validPaths,
+        // Only override when empty/missing, or migrating off legacy paths.
+        hugoProjectPath: shouldOverrideProjectPath ? validPaths[0] : currentPath
+      });
+      return;
+    }
+
+    // If recent projects already has entries, gently append missing known paths (without changing current selection).
+    if (missing.length > 0 && currentRecent.length < 10) {
+      const updatedRecent = [...currentRecent, ...missing].slice(0, 10);
+      console.log('Appending known projects to recent projects:', missing);
+      this.updateConfig({ recentProjects: updatedRecent });
     }
   }
 
