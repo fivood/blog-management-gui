@@ -17,6 +17,7 @@ const { Title, Text } = Typography;
 
 interface AppConfig {
   hugoProjectPath: string;
+  baseURL?: string;
   cloudflare?: {
     apiToken: string;
     accountId: string;
@@ -171,6 +172,20 @@ const SettingsView: React.FC = () => {
             extra="Hugo 项目的根目录路径"
           >
             <Input placeholder="例如: C:\Users\username\my-blog" />
+          </Form.Item>
+
+          <Divider />
+
+          <Form.Item
+            label="部署域名 (Base URL)"
+            name="baseURL"
+            rules={[
+              { required: false },
+              { type: 'url', message: '请输入有效的 URL' }
+            ]}
+            extra="网站部署后的完整域名，例如: https://example.com 或 https://myblog.pages.dev"
+          >
+            <Input placeholder="例如: https://fukki.pages.dev" />
           </Form.Item>
         </Card>
 

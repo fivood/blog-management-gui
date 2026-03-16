@@ -8,6 +8,7 @@ export interface Article {
   tags: string[];
   categories: string[];
   author?: string;
+  slug?: string;
   state: 'draft' | 'published';
   createdAt: Date;
   publishedAt?: Date;
@@ -42,6 +43,9 @@ export interface CreateArticleData {
   content: string;
   tags?: string[];
   categories?: string[];
+  author?: string;
+  slug?: string;
+  publishedAt?: Date;
   password?: string;
 }
 
@@ -50,6 +54,9 @@ export interface ArticleUpdate {
   content?: string;
   tags?: string[];
   categories?: string[];
+  author?: string;
+  slug?: string;
+  publishedAt?: Date;
   password?: string;
   isProtected?: boolean;
 }

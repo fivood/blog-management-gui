@@ -58,16 +58,33 @@ export class ArticleService {
   async createArticle(data: CreateArticleData): Promise<Article> {
     try {
       const article = await this.articleManager.createDraft(
-        { title: data.title, description: undefined, author: undefined },
+        { 
+          title: data.title, 
+          description: undefined, 
+          author: data.author 
+        },
         data.content
       );
 
-      if (data.tags || data.categories) {
-        await this.articleManager.modifyArticle(article.id, {
-          tags: data.tags || [],
-          categories: data.categories || []
-        });
+      // Update with additional fields
+      const updates: any = {
+        tags: data.tags || [],
+        categories: data.categories || []
+      };
+
+      if (data.slug) {
+        updates.metadata = { ...article.metadata, slug: data.slug };
       }
+
+      if (data.author) {
+        updates.metadata = { ...updates.metadata, author: data.author };
+      }
+
+      if (data.publishedAt) {
+        updates.publishedAt = data.publishedAt;
+      }
+
+      await this.articleManager.modifyArticle(article.id, updates);
 
       if (data.password) {
         const passwordHash = await SecurityService.hashPassword(data.password);
@@ -84,6 +101,9 @@ export class ArticleService {
       }
 
       const finalArticle = await this.articleManager.getArticle(article.id);
+      if (data.slug) finalArticle.slug = data.slug;
+      if (data.author) finalArticle.author = data.author;
+      if (data.publishedAt) finalArticle.publishedAt = data.publishedAt;
       await this.generateHugoFile(finalArticle);
       return finalArticle;
     } catch (error) {
@@ -94,12 +114,29 @@ export class ArticleService {
   async updateArticle(articleId: string, updates: ArticleUpdate): Promise<Article> {
     try {
       const currentArticle = await this.articleManager.getArticle(articleId);
-      const article = await this.articleManager.modifyArticle(articleId, {
+      
+      const modifyUpdates: any = {
         title: updates.title,
         content: updates.content,
         tags: updates.tags,
         categories: updates.categories
-      });
+      };
+
+      // Handle metadata updates for author and slug
+      if (updates.author !== undefined || updates.slug !== undefined) {
+        modifyUpdates.metadata = {
+          ...currentArticle.metadata,
+          ...(updates.author !== undefined && { author: updates.author }),
+          ...(updates.slug !== undefined && { slug: updates.slug })
+        };
+      }
+
+      // Handle publishedAt
+      if (updates.publishedAt !== undefined) {
+        modifyUpdates.publishedAt = updates.publishedAt;
+      }
+
+      const article = await this.articleManager.modifyArticle(articleId, modifyUpdates);
 
       if (updates.password !== undefined) {
         if (updates.password) {
@@ -125,6 +162,9 @@ export class ArticleService {
       }
 
       const finalArticle = await this.articleManager.getArticle(articleId);
+      if (updates.slug !== undefined) finalArticle.slug = updates.slug;
+      if (updates.author !== undefined) finalArticle.author = updates.author;
+      if (updates.publishedAt !== undefined) finalArticle.publishedAt = updates.publishedAt;
       await this.generateHugoFile(finalArticle);
       return finalArticle;
     } catch (error) {
@@ -189,6 +229,8 @@ export class ArticleService {
       
       const title = (frontmatter.match(/^title:\s*["']?(.+?)["']?$/m) || [])[1] || 'Untitled';
       const date = (frontmatter.match(/^date:\s*(.+)$/m) || [])[1];
+      const author = (frontmatter.match(/^author:\s*["']?(.+?)["']?$/m) || [])[1];
+      const slug = (frontmatter.match(/^slug:\s*["']?(.+?)["']?$/m) || [])[1];
       const tags = ((frontmatter.match(/^tags:\s*\[(.*?)\]$/m) || [])[1] || '').split(',').map(s => s.trim().replace(/["']/g, '')).filter(s => s);
       const cats = ((frontmatter.match(/^categories:\s*\[(.*?)\]$/m) || [])[1] || '').split(',').map(s => s.trim().replace(/["']/g, '')).filter(s => s);
       const isDraft = (frontmatter.match(/^draft:\s*(true|false)$/m) || [])[1] === 'true';
@@ -197,9 +239,12 @@ export class ArticleService {
       const createdAt = date ? new Date(date) : new Date();
       
       return {
-        id, title, content: text, tags, categories: cats, state: isDraft ? 'draft' : 'published',
+        id, title, content: text, tags, categories: cats, 
+        author: author || undefined,
+        slug: slug || undefined,
+        state: isDraft ? 'draft' : 'published',
         createdAt, modifiedAt: createdAt, publishedAt: isDraft ? undefined : createdAt,
-        version: 1, isProtected: false, metadata: { title }
+        version: 1, isProtected: false, metadata: { title, author }
       };
     } catch (e) { return null; }
   }

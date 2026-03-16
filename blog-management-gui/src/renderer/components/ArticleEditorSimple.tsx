@@ -7,12 +7,14 @@ import {
   Select,
   Switch,
   Modal,
-  Spin
+  Spin,
+  DatePicker
 } from 'antd';
-import { SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { SaveOutlined, CloseOutlined, CheckOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import type { CreateArticleData, ArticleUpdate } from '../../shared/types/article';
 import { useArticles } from '../hooks/useArticles';
 import { useNotification } from '../contexts/NotificationContext';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -29,13 +31,15 @@ interface ArticleEditorProps {
  */
 const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, onCancel }) => {
   const [form] = Form.useForm();
-  const { getArticle, createArticle, updateArticle, loading } = useArticles();
+  const { getArticle, createArticle, updateArticle, publishArticle, loading } = useArticles();
   const { showNotification } = useNotification();
   
   const [isDirty, setIsDirty] = useState(false);
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [currentArticleId, setCurrentArticleId] = useState<string | null>(articleId);
 
   // Load article data if editing existing article
   useEffect(() => {
@@ -77,6 +81,9 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
           content: article.content,
           tags: article.tags,
           categories: article.categories,
+          author: article.author || '',
+          slug: article.slug || '',
+          publishedAt: article.publishedAt ? dayjs(article.publishedAt) : null,
           password: '' // Don't populate password for security
         });
         setIsPasswordProtected(article.isProtected);
@@ -98,16 +105,20 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
 
       // Create or update article
       let result;
-      if (articleId) {
+      const targetId = currentArticleId || articleId;
+      if (targetId) {
         // Prepare update data (all fields optional)
         const updateData: ArticleUpdate = {
           title: values.title.trim(),
           content: values.content.trim(),
           tags: values.tags || [],
           categories: values.categories || [],
+          author: values.author?.trim() || undefined,
+          slug: values.slug?.trim() || undefined,
+          publishedAt: values.publishedAt ? values.publishedAt.toDate() : undefined,
           password: isPasswordProtected ? values.password : undefined
         };
-        result = await updateArticle(articleId, updateData);
+        result = await updateArticle(targetId, updateData);
       } else {
         // Prepare create data (title and content required)
         const createData: CreateArticleData = {
@@ -115,17 +126,25 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
           content: values.content.trim(),
           tags: values.tags || [],
           categories: values.categories || [],
+          author: values.author?.trim() || undefined,
+          slug: values.slug?.trim() || undefined,
+          publishedAt: values.publishedAt ? values.publishedAt.toDate() : undefined,
           password: isPasswordProtected ? values.password : undefined
         };
         result = await createArticle(createData);
+        if (result) {
+          setCurrentArticleId(result.id);
+        }
       }
 
       if (result) {
-        showNotification('success', articleId ? '文章保存成功' : '文章创建成功');
+        showNotification('success', targetId ? '文章保存成功' : '文章创建成功');
         setIsDirty(false);
-        onSave();
+        // Don't call onSave() here - keep editor open
+        return result;
       } else {
-        showNotification('error', articleId ? '保存文章失败' : '创建文章失败');
+        showNotification('error', targetId ? '保存文章失败' : '创建文章失败');
+        return null;
       }
     } catch (error: any) {
       if (error.errorFields) {
@@ -134,8 +153,38 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
         showNotification('error', '保存失败，请重试');
         console.error('Save error:', error);
       }
+      return null;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      setIsPublishing(true);
+      
+      // First save the article
+      const savedArticle = await handleSave();
+      if (!savedArticle) {
+        return;
+      }
+
+      // Then publish it
+      const targetId = currentArticleId || articleId || savedArticle.id;
+      const result = await publishArticle(targetId);
+      
+      if (result) {
+        showNotification('success', '文章发布成功');
+        setIsDirty(false);
+        onSave();
+      } else {
+        showNotification('error', '发布文章失败');
+      }
+    } catch (error) {
+      console.error('Publish error:', error);
+      showNotification('error', '发布失败，请重试');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -207,6 +256,20 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
         </Form.Item>
 
         <Form.Item
+          label="发布日期"
+          name="publishedAt"
+          tooltip="设置文章的发布日期和时间，留空则使用当前时间"
+        >
+          <DatePicker
+            showTime
+            format="YYYY-MM-DD HH:mm"
+            placeholder="选择发布日期和时间"
+            style={{ width: '100%' }}
+            disabled={loading || isSaving}
+          />
+        </Form.Item>
+
+        <Form.Item
           label="分类"
           name="categories"
           tooltip="用于文章类型分类，如：长篇、短篇、随笔等"
@@ -226,6 +289,17 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
         </Form.Item>
 
         <Form.Item
+          label="作者"
+          name="author"
+          tooltip="文章作者名称"
+        >
+          <Input 
+            placeholder="请输入作者名称" 
+            disabled={loading || isSaving}
+          />
+        </Form.Item>
+
+        <Form.Item
           label="标签"
           name="tags"
           tooltip="用于内容标记，如：技术、生活、旅行等"
@@ -234,6 +308,23 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
             mode="tags"
             placeholder="选择或输入标签"
             style={{ width: '100%' }}
+            disabled={loading || isSaving}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="URL 别名（可选）"
+          name="slug"
+          tooltip="自定义文章 URL，只能包含小写字母、数字和连字符，留空则使用文章 ID"
+          rules={[
+            { 
+              pattern: /^[a-z0-9-]*$/, 
+              message: 'URL 别名只能包含小写字母、数字和连字符' 
+            }
+          ]}
+        >
+          <Input 
+            placeholder="自定义文章 URL，如：my-first-blog" 
             disabled={loading || isSaving}
           />
         </Form.Item>
@@ -288,15 +379,34 @@ const ArticleEditorSimple: React.FC<ArticleEditorProps> = ({ articleId, onSave, 
               icon={<SaveOutlined />}
               onClick={handleSave}
               loading={isSaving}
-              disabled={loading}
+              disabled={loading || isPublishing}
               size="large"
             >
               保存 {!isSaving && '(Ctrl+S)'}
             </Button>
             <Button
+              type="primary"
+              icon={<CheckOutlined />}
+              onClick={handlePublish}
+              loading={isPublishing}
+              disabled={loading || isSaving}
+              size="large"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            >
+              发布
+            </Button>
+            <Button
+              icon={<UnorderedListOutlined />}
+              onClick={onCancel}
+              disabled={isSaving || isPublishing}
+              size="large"
+            >
+              返回列表
+            </Button>
+            <Button
               icon={<CloseOutlined />}
               onClick={handleCancel}
-              disabled={isSaving}
+              disabled={isSaving || isPublishing}
               size="large"
             >
               取消

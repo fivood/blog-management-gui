@@ -24,6 +24,13 @@ export class ArticleManager {
   private articles: Map<string, Article> = new Map();
 
   /**
+   * Clear all articles from memory (used when switching projects)
+   */
+  clearArticles(): void {
+    this.articles.clear();
+  }
+
+  /**
    * Create a new article in Draft state
    * @param metadata Article metadata (title, description, etc.)
    * @param content Article content
@@ -161,16 +168,26 @@ export class ArticleManager {
     if (updates.categories !== undefined) {
       article.categories = updates.categories;
     }
+    if (updates.author !== undefined) {
+      article.author = updates.author;
+    }
+    if (updates.slug !== undefined) {
+      article.slug = updates.slug;
+    }
     if (updates.metadata !== undefined) {
       article.metadata = { ...article.metadata, ...updates.metadata };
+    }
+    // Handle publishedAt - only update if explicitly provided
+    if (updates.publishedAt !== undefined) {
+      article.publishedAt = updates.publishedAt;
     }
 
     // Update modification tracking
     article.modifiedAt = now;
     article.version += 1;
 
-    // Preserve original publication timestamp
-    if (originalPublishedAt) {
+    // Preserve original publication timestamp if not explicitly updated
+    if (originalPublishedAt && updates.publishedAt === undefined) {
       article.publishedAt = originalPublishedAt;
     }
 

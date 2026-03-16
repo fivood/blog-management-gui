@@ -178,7 +178,7 @@ function registerIPCHandlers(): void {
   registerArticleHandlers(articleService);
   registerImageHandlers(imageService);
   registerHugoHandlers(hugoService, mainWindow);
-  registerDeployHandlers(deployService, mainWindow);
+  registerDeployHandlers(deployService, mainWindow, configService);
   registerStyleHandlers(styleService);
   registerConfigHandlers(configService, deployService, articleService, imageService, hugoService, styleService);
 }

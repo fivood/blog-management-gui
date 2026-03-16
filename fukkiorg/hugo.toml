@@ -1,0 +1,7 @@
+baseURL = "https://fukki.org/"
+languageCode = "en-us"
+title = "有空写点-测试版"
+theme = "paper"
+
+[params]
+description = "A blog powered by Hugo"

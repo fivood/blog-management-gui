@@ -1,0 +1,338 @@
+{{- define "main" -}}
+
+<article>
+  <header class="mb-14">
+    <h1 class="my-0! pb-2.5">{{- .Title -}}</h1>
+    <div class="text-xs antialiased opacity-60">
+      {{- if .Date -}}
+      <time>{{- .Date | time.Format ":date_medium" -}}</time>
+      {{- end -}}
+      {{- $single_author := or .Params.author .Params.Author site.Params.author site.Params.name -}}
+      {{- if $single_author -}}
+      <span class="mx-1">&middot;</span>
+      <span>{{- $single_author -}}</span>
+      {{- end -}}
+    </div>
+  </header>
+
+  {{- $path := "" -}}
+  {{- with .File -}}
+    {{- $path = replace .Path "\\" "/" -}}
+  {{- end -}}
+  {{- $payload := dict -}}
+  {{- $passwordHint := "密码是文章标题拼音首字母小写" -}}
+  {{- with site.Data.protected_posts -}}
+    {{- with index . $path -}}
+      {{- $payload = . -}}
+      {{- with .passwordHint -}}
+        {{- $passwordHint = . -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- if gt (len $payload) 0 -}}
+  {{- $payloadEncoded := $payload | jsonify | base64Encode -}}
+
+  <style>
+    #protected-post {
+      border: 1px solid rgba(0,0,0,.12) !important;
+      border-radius: 16px !important;
+      padding: 28px 32px 32px !important;
+      background: rgba(0,0,0,.03) !important;
+      margin: 8px 0 32px !important;
+      max-width: 480px !important;
+    }
+    .dark #protected-post {
+      border-color: rgba(255,255,255,.14) !important;
+      background: rgba(255,255,255,.05) !important;
+    }
+    #protected-post .pp-eyebrow {
+      font-size: .68rem !important;
+      font-weight: 600 !important;
+      letter-spacing: .13em !important;
+      text-transform: uppercase !important;
+      opacity: .5 !important;
+      margin: 0 0 16px !important;
+    }
+    #protected-post h2 {
+      font-size: 1.5rem !important;
+      font-weight: 600 !important;
+      margin: 0 0 8px !important;
+      line-height: 1.3 !important;
+    }
+    #protected-post .pp-desc {
+      margin: 0 0 24px !important;
+      opacity: .7 !important;
+      font-size: .95rem !important;
+      line-height: 1.5 !important;
+    }
+    #protected-post .pp-label {
+      display: block !important;
+      font-size: .82rem !important;
+      font-weight: 500 !important;
+      margin: 0 0 7px !important;
+      opacity: .85 !important;
+    }
+    #protected-post .pp-field {
+      position: relative !important;
+      margin-bottom: 12px !important;
+    }
+    #protected-password {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      border: 1.5px solid rgba(0,0,0,.18) !important;
+      border-radius: 10px !important;
+      padding: 10px 52px 10px 14px !important;
+      font-size: .97rem !important;
+      background: #fff !important;
+      outline: none !important;
+      color: #111 !important;
+      transition: border-color .15s, box-shadow .15s !important;
+      font-family: inherit !important;
+    }
+    #protected-password:focus {
+      border-color: rgba(0,0,0,.45) !important;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.06) !important;
+    }
+    .dark #protected-password {
+      background: rgba(255,255,255,.12) !important;
+      border-color: rgba(255,255,255,.3) !important;
+      color: #fff !important;
+    }
+    .dark #protected-password:focus {
+      border-color: rgba(255,255,255,.6) !important;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.07) !important;
+    }
+    #protected-password::placeholder {
+      color: #999 !important;
+    }
+    .dark #protected-password::placeholder {
+      color: rgba(255,255,255,.35) !important;
+    }
+    #protected-toggle {
+      position: absolute !important;
+      right: 0 !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      padding: 0 13px !important;
+      margin: 0 !important;
+      border: none !important;
+      background: none !important;
+      cursor: pointer !important;
+      font-size: .72rem !important;
+      font-weight: 500 !important;
+      color: inherit !important;
+      opacity: .5 !important;
+      transition: opacity .15s !important;
+      white-space: nowrap !important;
+    }
+    #protected-toggle:hover { opacity: 1 !important; }
+    #protected-unlock {
+      display: block !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      border-radius: 10px !important;
+      background: #111 !important;
+      color: #fff !important;
+      border: none !important;
+      padding: 11px 20px !important;
+      margin: 0 !important;
+      font-size: .97rem !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: opacity .15s, transform .1s !important;
+      font-family: inherit !important;
+      letter-spacing: .01em !important;
+    }
+    #protected-unlock:hover { opacity: .8 !important; }
+    #protected-unlock:active { transform: scale(.98) !important; }
+    #protected-unlock:disabled { opacity: .38 !important; cursor: not-allowed !important; }
+    .dark #protected-unlock { background: #fff !important; color: #000 !important; }
+    #protected-status {
+      display: block !important;
+      margin-top: 10px !important;
+      font-size: .85rem !important;
+      opacity: .55 !important;
+      text-align: center !important;
+    }
+    #protected-error {
+      margin: 12px 0 0 !important;
+      padding: 9px 13px !important;
+      border-radius: 8px !important;
+      border: 1px solid rgba(200,30,30,.28) !important;
+      background: rgba(200,30,30,.07) !important;
+      color: #c00 !important;
+      font-size: .85rem !important;
+    }
+    .dark #protected-error {
+      border-color: rgba(255,100,100,.3) !important;
+      background: rgba(255,100,100,.08) !important;
+      color: #fbb !important;
+    }
+  </style>
+
+  <section id="protected-post" data-payload="{{ $payloadEncoded }}">
+    <p class="pp-eyebrow">Protected Post</p>
+    <h2>这篇文章已加密</h2>
+    <p class="pp-desc">请输入本篇文章独立密码后解锁正文。</p>
+
+    <form id="protected-form" autocomplete="off">
+      <label class="pp-label" for="protected-password">文章密码</label>
+      <div class="pp-field">
+        <input id="protected-password" type="password" placeholder="{{ $passwordHint }}" />
+        <button id="protected-toggle" type="button">显示</button>
+      </div>
+      <button id="protected-unlock" type="submit">解锁文章</button>
+      <span id="protected-status" hidden>正在解锁...</span>
+    </form>
+
+    <p id="protected-error" hidden>密码错误，请重试。</p>
+  </section>
+
+  <section id="protected-content" hidden>
+    <section id="decrypted-content"></section>
+    {{- if or .Params.categories .Params.tags -}}
+    <footer class="mt-12">
+      {{- if .Params.categories -}}
+      <div class="mb-3 flex flex-wrap items-center gap-1.5">
+        <span class="text-xs opacity-50 ltr:mr-1 rtl:ml-1">分类</span>
+        {{- range .Params.categories -}}
+        <a class="rounded-md bg-black/[5%] px-3 py-0.5 text-sm no-underline hover:bg-black/[10%] dark:bg-white/[10%] dark:hover:bg-white/[16%]"
+           href="{{- print (absURL "categories/") (urlize .) -}}">{{- . -}}</a>
+        {{- end -}}
+      </div>
+      {{- end -}}
+      {{- if .Params.tags -}}
+      <div class="flex flex-wrap">
+        {{- range .Params.tags -}}
+        <a class="mb-1.5 rounded-lg bg-black/[3%] px-5 py-1 no-underline hover:bg-black/[6%] ltr:mr-1.5 rtl:ml-1.5 dark:bg-white/[8%] dark:hover:bg-white/[12%]"
+           href="{{- print (absURL "tags/") (urlize .) -}}">{{- . -}}</a>
+        {{- end -}}
+      </div>
+      {{- end -}}
+    </footer>
+    {{- end -}}
+  </section>
+  <script>
+    (() => {
+      const container = document.getElementById('protected-post');
+      if (!container || !window.crypto || !window.crypto.subtle) return;
+
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      const passwordInput = document.getElementById('protected-password');
+      const toggleButton = document.getElementById('protected-toggle');
+      const form = document.getElementById('protected-form');
+      const unlockButton = document.getElementById('protected-unlock');
+      const statusMessage = document.getElementById('protected-status');
+      const errorMessage = document.getElementById('protected-error');
+      const contentSection = document.getElementById('protected-content');
+      const decryptedContent = document.getElementById('decrypted-content');
+
+      toggleButton.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        toggleButton.textContent = isPassword ? '隐藏' : '显示';
+      });
+
+      const b64ToBytes = (value) => {
+        const bin = atob(value);
+        const bytes = new Uint8Array(bin.length);
+        for (let index = 0; index < bin.length; index += 1) {
+          bytes[index] = bin.charCodeAt(index);
+        }
+        return bytes;
+      };
+
+      const decrypt = async (password, payload) => {
+        const baseKey = await window.crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+
+        const derivedKey = await window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            hash: 'SHA-256',
+            salt: b64ToBytes(payload.salt),
+            iterations: payload.iterations,
+          },
+          baseKey,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['decrypt']
+        );
+
+        const encryptedBytes = b64ToBytes(payload.data);
+        const tagBytes = b64ToBytes(payload.tag);
+        const combined = new Uint8Array(encryptedBytes.length + tagBytes.length);
+        combined.set(encryptedBytes, 0);
+        combined.set(tagBytes, encryptedBytes.length);
+
+        const plainBuffer = await window.crypto.subtle.decrypt(
+          {
+            name: 'AES-GCM',
+            iv: b64ToBytes(payload.iv),
+            tagLength: 128,
+          },
+          derivedKey,
+          combined
+        );
+
+        return decoder.decode(plainBuffer);
+      };
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const password = passwordInput.value.trim();
+        if (!password) {
+          passwordInput.focus();
+          return;
+        }
+
+        errorMessage.hidden = true;
+        unlockButton.disabled = true;
+        statusMessage.hidden = false;
+
+        try {
+          const payload = JSON.parse(atob(container.dataset.payload || ''));
+          const html = await decrypt(password, payload);
+          decryptedContent.innerHTML = html;
+          contentSection.hidden = false;
+          container.hidden = true;
+        } catch {
+          errorMessage.hidden = false;
+          passwordInput.select();
+        } finally {
+          unlockButton.disabled = false;
+          statusMessage.hidden = true;
+        }
+      });
+    })();
+  </script>
+  {{- else -}}
+  <section>{{- .Content -}}</section>
+  
+  {{- if or .Params.categories .Params.tags -}}
+  <footer class="mt-12">
+    {{- if .Params.categories -}}
+    <div class="mb-3 flex flex-wrap items-center gap-1.5">
+      <span class="text-xs opacity-50 ltr:mr-1 rtl:ml-1">分类</span>
+      {{- range .Params.categories -}}
+      <a class="rounded-md bg-black/[5%] px-3 py-0.5 text-sm no-underline hover:bg-black/[10%] dark:bg-white/[10%] dark:hover:bg-white/[16%]"
+         href="{{- print (absURL "categories/") (urlize .) -}}">{{- . -}}</a>
+      {{- end -}}
+    </div>
+    {{- end -}}
+    {{- if .Params.tags -}}
+    <div class="flex flex-wrap">
+      {{- range .Params.tags -}}
+      <a class="mb-1.5 rounded-lg bg-black/[3%] px-5 py-1 no-underline hover:bg-black/[6%] ltr:mr-1.5 rtl:ml-1.5 dark:bg-white/[8%] dark:hover:bg-white/[12%]"
+         href="{{- print (absURL "tags/") (urlize .) -}}">{{- . -}}</a>
+      {{- end -}}
+    </div>
+    {{- end -}}
+  </footer>
+  {{- end -}}
+  {{- end -}}
+</article>
+
+{{- end -}}

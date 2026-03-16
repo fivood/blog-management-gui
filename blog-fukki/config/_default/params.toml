@@ -1,0 +1,12 @@
+description = "能找到这的应该知道写的是啥。"
+mainSections = ["blog"]
+
+color = "linen"
+name = "五木"
+bio = "血食组没羞没臊的生活记录。"
+rss = true
+
+disableHLJS = false
+disablePostNavigation = false
+monoDarkIcon = true
+math = false

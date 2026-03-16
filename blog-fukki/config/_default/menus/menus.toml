@@ -1,0 +1,19 @@
+[[main]]
+  name = "首页"
+  url = "/"
+  weight = 10
+
+[[main]]
+  name = "文章"
+  url = "/blog/"
+  weight = 20
+
+[[main]]
+  name = "分类"
+  url = "/categories/"
+  weight = 30
+
+[[footer]]
+  name = "隐私政策"
+  url = "/privacy/"
+  weight = 10

@@ -1,0 +1,27 @@
+baseURL = "https://fukki.pages.dev/"
+languageCode = "zh-CN"
+title = "有空写点"
+theme = "paper"
+enableRobotsTXT = true
+enableEmoji = true
+summaryLength = 120
+paginate = 10
+publishDir = "public"
+buildFuture = true
+
+[author]
+  name = "同人作者"
+
+[taxonomies]
+  tag = "tags"
+  category = "categories"
+
+[permalinks]
+  blog = "/blog/:slug/"
+
+[outputs]
+  home = ["html", "rss"]
+  page = ["html"]
+  section = ["html", "rss"]
+  taxonomy = ["html"]
+  term = ["html", "rss"]

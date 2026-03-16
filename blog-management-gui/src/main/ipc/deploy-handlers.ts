@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { DeployService } from '../services/DeployService';
+import { ConfigService } from '../services/ConfigService';
 import { IPCResponse, ErrorResponse } from '../../shared/types/ipc';
 import {
   DEPLOY_EXECUTE,
@@ -11,7 +12,7 @@ import {
  * Register deploy IPC handlers
  * Requirements: 12.1-12.7, 13.1-13.7
  */
-export function registerDeployHandlers(deployService: DeployService, mainWindow: BrowserWindow): void {
+export function registerDeployHandlers(deployService: DeployService, mainWindow: BrowserWindow, configService: ConfigService): void {
   // Execute deployment
   ipcMain.handle(DEPLOY_EXECUTE, async (): Promise<IPCResponse> => {
     try {
@@ -20,7 +21,9 @@ export function registerDeployHandlers(deployService: DeployService, mainWindow:
         mainWindow.webContents.send('deploy:progress', { progress, message });
       });
 
-      const result = await deployService.deploy();
+      // Get current config to retrieve baseURL
+      const config = configService.getConfig();
+      const result = await deployService.deploy(config.baseURL);
       return {
         success: true,
         data: result,

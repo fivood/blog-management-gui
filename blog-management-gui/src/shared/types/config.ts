@@ -3,16 +3,23 @@
 export interface AppConfig {
   version: string;
   hugoProjectPath: string;
+  baseURL?: string;
   cloudflare: CloudflareConfig;
   editor: EditorPreferences;
   window: WindowState;
   recentProjects: string[];
+  projectConfigs?: Record<string, ProjectConfig>; // Per-project configurations
 }
 
 export interface CloudflareConfig {
   apiToken: string;
   accountId: string;
   projectName: string;
+}
+
+export interface ProjectConfig {
+  cloudflare?: CloudflareConfig;
+  baseURL?: string;
 }
 
 export interface EditorPreferences {

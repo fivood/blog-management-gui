@@ -1,0 +1,21 @@
+{{- define "main" -}}
+<h1 class="mb-10">分类</h1>
+
+{{- if .Data.Terms -}}
+<div class="not-prose grid grid-cols-2 gap-3 sm:grid-cols-3">
+  {{- range .Data.Terms.Alphabetical -}}
+  <a
+    href="{{ .Page.Permalink }}"
+    class="group flex items-center justify-between rounded-lg border border-black/10 px-4 py-3 transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+  >
+    <span class="font-medium text-black dark:text-white">{{- .Page.Title -}}</span>
+    <span
+      class="ml-3 shrink-0 rounded-full bg-black/8 px-2.5 py-0.5 text-xs tabular-nums text-black/60 dark:bg-white/10 dark:text-white/60"
+    >{{- .Count -}} 篇</span>
+  </a>
+  {{- end -}}
+</div>
+{{- else -}}
+<p class="opacity-60">暂无分类。</p>
+{{- end -}}
+{{- end -}}

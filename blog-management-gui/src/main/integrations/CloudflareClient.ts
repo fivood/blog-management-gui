@@ -1,6 +1,7 @@
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { CloudflareConfig, DeploymentStatus } from '../../shared/types/config';
 
 /**
@@ -77,6 +78,9 @@ export class CloudflareClient {
    * Requirements: 12.3 - Upload public folder contents
    */
   async uploadFiles(publicDir: string): Promise<{ deploymentId: string; url: string }> {
+    console.log('=== CloudflareClient.uploadFiles ===');
+    console.log('Public directory:', publicDir);
+    
     // Check rate limit before proceeding
     await this.checkRateLimit();
 
@@ -85,26 +89,40 @@ export class CloudflareClient {
 
     // Get list of files to upload
     const files = await this.getFilesToUpload(publicDir);
+    console.log('Files to upload:', files.length);
     
     if (files.length === 0) {
       throw new Error('No files found in public directory');
     }
 
-    // Create deployment
-    const deployment = await this.createDeployment();
+    // Create manifest - array of file paths (not hashes)
+    const manifest: string[] = [];
+    for (const file of files) {
+      const normalizedPath = '/' + file.replace(/\\/g, '/');
+      manifest.push(normalizedPath);
+    }
+    console.log('Manifest created with', manifest.length, 'entries');
+    console.log('Manifest sample (first 5):', manifest.slice(0, 5));
+
+    // Create deployment with manifest
+    const deployment = await this.createDeployment(manifest);
+    console.log('Deployment created:', deployment.id);
     
     try {
       // Upload files in batches to avoid overwhelming the API
       await this.uploadFilesInBatches(publicDir, files, deployment.id);
+      console.log('Files uploaded successfully');
       
       // Finalize deployment
       await this.finalizeDeployment(deployment.id);
+      console.log('Deployment finalized');
       
       return {
         deploymentId: deployment.id,
         url: deployment.url
       };
     } catch (error) {
+      console.error('Upload error:', error);
       // Attempt to cancel failed deployment
       await this.cancelDeployment(deployment.id).catch(() => {
         // Ignore cancellation errors
@@ -233,16 +251,28 @@ export class CloudflareClient {
   /**
    * Create a new deployment
    */
-  private async createDeployment(): Promise<{ id: string; url: string }> {
+  private async createDeployment(manifest: string[]): Promise<{ id: string; url: string }> {
     const endpoint = `/accounts/${this.config.accountId}/pages/projects/${this.config.projectName}/deployments`;
+    
+    console.log('Creating deployment with manifest...');
+    console.log('Endpoint:', endpoint);
+    console.log('Manifest entries:', manifest.length);
+    console.log('Manifest sample (first 3):', manifest.slice(0, 3));
+    
+    const requestBody = { manifest };
+    console.log('Request body keys:', Object.keys(requestBody));
+    console.log('Request body has manifest?', 'manifest' in requestBody);
+    console.log('Manifest in body:', requestBody.manifest ? 'yes' : 'no');
+    console.log('Manifest is array?', Array.isArray(requestBody.manifest));
     
     const response = await this.makeRequest<{
       result: {
         id: string;
         url: string;
       };
-    }>('POST', endpoint, {});
+    }>('POST', endpoint, requestBody);
 
+    console.log('Deployment created:', response.result);
     return {
       id: response.result.id,
       url: response.result.url
@@ -341,7 +371,8 @@ export class CloudflareClient {
         method,
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'blog-management-gui/1.0.0'
         }
       };
 
@@ -403,7 +434,20 @@ export class CloudflareClient {
 
       // Send body if present
       if (body !== undefined) {
-        req.write(JSON.stringify(body));
+        const bodyStr = JSON.stringify(body);
+        console.log('Request body length:', bodyStr.length);
+        console.log('Request body preview:', bodyStr.substring(0, 500));
+        
+        // Set Content-Length header
+        if (!options.headers) {
+          options.headers = {};
+        }
+        (options.headers as any)['Content-Length'] = Buffer.byteLength(bodyStr);
+        console.log('Content-Length header set to:', (options.headers as any)['Content-Length']);
+        
+        req.write(bodyStr);
+      } else {
+        console.log('No request body');
       }
 
       req.end();

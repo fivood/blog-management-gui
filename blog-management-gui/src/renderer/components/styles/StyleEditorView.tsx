@@ -4,6 +4,8 @@ import { ExportOutlined, ImportOutlined, ReloadOutlined, HistoryOutlined } from 
 import type { StyleConfiguration } from '../../../shared/types';
 import ConfigEditor from './ConfigEditor';
 import CSSEditor from './CSSEditor';
+import PaperModEditor from './PaperModEditor';
+import NeopostEditor from './NeopostEditor';
 import StyleHistory from './StyleHistory';
 
 /**
@@ -243,6 +245,20 @@ const StyleEditorView: React.FC = () => {
             <CSSEditor 
               css={styleConfig.customCSS}
               onChange={(customCSS) => handleConfigChange({ customCSS })}
+            />
+          </TabPane>
+
+          <TabPane tab="PaperMod 主题" key="papermod">
+            <PaperModEditor 
+              config={styleConfig}
+              onChange={handleConfigChange}
+            />
+          </TabPane>
+
+          <TabPane tab="Neopost 主题" key="neopost">
+            <NeopostEditor 
+              config={styleConfig}
+              onChange={handleConfigChange}
             />
           </TabPane>
         </Tabs>

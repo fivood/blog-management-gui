@@ -1,0 +1,47 @@
+{{- define "main" -}}
+
+<!-- Categories Title -->
+<h1 class="mb-14">{{- .Title -}}</h1>
+
+<!-- Categories List -->
+{{- if .Data.Terms -}}
+<div class="space-y-8">
+  {{- range .Data.Terms.Alphabetical -}}
+  <section class="relative">
+    <h2 class="my-0! text-xl">
+      <a href="{{- .Page.Permalink -}}" class="hover:underline">
+        {{- .Page.Title -}}
+      </a>
+      <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">({{- .Count -}})</span>
+    </h2>
+    
+    <!-- Articles in this category -->
+    {{- if .Pages -}}
+    <ul class="mt-4 ml-6 space-y-2">
+      {{- range first 5 .Pages -}}
+      <li>
+        <a href="{{- .Permalink -}}" class="text-sm hover:underline">
+          {{- .Title -}}
+        </a>
+        <time class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+          {{- .Date | time.Format ":date_medium" -}}
+        </time>
+      </li>
+      {{- end -}}
+      {{- if gt (len .Pages) 5 -}}
+      <li class="text-sm text-gray-500 dark:text-gray-400">
+        <a href="{{- .Page.Permalink -}}" class="hover:underline">
+          查看全部 {{- .Count -}} 篇文章 →
+        </a>
+      </li>
+      {{- end -}}
+    </ul>
+    {{- end -}}
+  </section>
+  {{- end -}}
+</div>
+{{- else -}}
+<p class="text-gray-500 dark:text-gray-400">暂无分类</p>
+{{- end -}}
+
+{{- end -}}

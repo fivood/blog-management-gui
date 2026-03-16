@@ -62,6 +62,7 @@ export interface ArticleMetadata {
   keywords?: string[];
   author?: string;
   customFields?: Record<string, any>;
+  plainPassword?: string;
 }
 
 /**
@@ -73,6 +74,9 @@ export interface ArticleUpdate {
   excerpt?: string;
   tags?: string[];
   categories?: string[];
+  author?: string;
+  slug?: string;
+  publishedAt?: Date;
   metadata?: Partial<ArticleMetadata>;
   password?: string;
 }
@@ -107,6 +111,7 @@ export interface Article {
   tags: string[];
   categories: string[];
   author?: string;
+  slug?: string;
 
   // State
   state: 'draft' | 'published';
@@ -122,6 +127,7 @@ export interface Article {
   // Protection
   isProtected: boolean;
   passwordHash?: string;
+  passwordHint?: string;
 
   // Metadata
   metadata: ArticleMetadata;

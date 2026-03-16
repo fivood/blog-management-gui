@@ -88,6 +88,7 @@ export class ConfigService {
     return {
       version: app.getVersion(),
       hugoProjectPath: defaultHugoPath,
+      baseURL: '',
       cloudflare: {
         apiToken: '',
         accountId: '',
@@ -109,7 +110,8 @@ export class ConfigService {
         y: 0,
         isMaximized: false
       },
-      recentProjects: []
+      recentProjects: [],
+      projectConfigs: {}
     };
   }
 
@@ -122,7 +124,7 @@ export class ConfigService {
       const config = this.store.store;
       
       // Ensure all required fields exist (for backward compatibility)
-      return {
+      const fullConfig: AppConfig = {
         ...this.defaultConfig,
         ...config,
         cloudflare: {
@@ -136,8 +138,44 @@ export class ConfigService {
         window: {
           ...this.defaultConfig.window,
           ...config.window
-        }
+        },
+        projectConfigs: config.projectConfigs || {}
       };
+      
+      // Load project-specific config if available
+      const projectPath = fullConfig.hugoProjectPath;
+      if (projectPath && fullConfig.projectConfigs[projectPath]) {
+        const projectConfig = fullConfig.projectConfigs[projectPath];
+        
+        // Override with project-specific settings ONLY if they have values
+        if (projectConfig.cloudflare) {
+          // Only override fields that have actual values
+          if (projectConfig.cloudflare.apiToken) {
+            fullConfig.cloudflare.apiToken = projectConfig.cloudflare.apiToken;
+          }
+          if (projectConfig.cloudflare.accountId) {
+            fullConfig.cloudflare.accountId = projectConfig.cloudflare.accountId;
+          }
+          if (projectConfig.cloudflare.projectName) {
+            fullConfig.cloudflare.projectName = projectConfig.cloudflare.projectName;
+          }
+        }
+        if (projectConfig.baseURL) {
+          fullConfig.baseURL = projectConfig.baseURL;
+        }
+      }
+      
+      console.log('ConfigService.getConfig() returning:', {
+        hugoProjectPath: fullConfig.hugoProjectPath,
+        baseURL: fullConfig.baseURL,
+        cloudflare: {
+          apiToken: fullConfig.cloudflare.apiToken ? '***' : 'empty',
+          accountId: fullConfig.cloudflare.accountId || 'empty',
+          projectName: fullConfig.cloudflare.projectName || 'empty'
+        }
+      });
+      
+      return fullConfig;
     } catch (error) {
       console.error('Failed to load configuration:', error);
       return this.defaultConfig;
@@ -165,11 +203,35 @@ export class ConfigService {
           : currentConfig.editor,
         window: updates.window
           ? { ...currentConfig.window, ...updates.window }
-          : currentConfig.window
+          : currentConfig.window,
+        projectConfigs: updates.projectConfigs
+          ? { ...currentConfig.projectConfigs, ...updates.projectConfigs }
+          : currentConfig.projectConfigs
       };
 
       // Update version to current app version
       newConfig.version = app.getVersion();
+      
+      // Save project-specific config
+      const projectPath = newConfig.hugoProjectPath;
+      if (projectPath) {
+        const projectConfigs = newConfig.projectConfigs || {};
+        
+        // Initialize project config if it doesn't exist
+        if (!projectConfigs[projectPath]) {
+          projectConfigs[projectPath] = {};
+        }
+        
+        // Save cloudflare and baseURL to project-specific config
+        if (updates.cloudflare) {
+          projectConfigs[projectPath].cloudflare = newConfig.cloudflare;
+        }
+        if (updates.baseURL !== undefined) {
+          projectConfigs[projectPath].baseURL = newConfig.baseURL;
+        }
+        
+        newConfig.projectConfigs = projectConfigs;
+      }
 
       // Save to store (encryption handled automatically for sensitive fields)
       this.store.store = newConfig;

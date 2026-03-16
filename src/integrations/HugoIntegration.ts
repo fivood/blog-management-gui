@@ -25,6 +25,7 @@ export class HugoIntegration {
       tags: article.tags.length > 0 ? article.tags : undefined,
       categories: article.categories.length > 0 ? article.categories : undefined,
       author: article.author,
+      slug: article.slug,
       description: article.metadata.description,
       keywords: article.metadata.keywords,
     };
@@ -84,11 +85,12 @@ export class HugoIntegration {
     const tags = Array.isArray(frontmatter.tags) ? frontmatter.tags : [];
     const categories = Array.isArray(frontmatter.categories) ? frontmatter.categories : [];
     const author = frontmatter.author;
+    const slug = frontmatter.slug;
     const description = frontmatter.description;
     const keywords = Array.isArray(frontmatter.keywords) ? frontmatter.keywords : [];
 
     // Extract custom fields (everything not in standard fields)
-    const standardFields = ['title', 'date', 'lastmod', 'draft', 'tags', 'categories', 'author', 'description', 'keywords'];
+    const standardFields = ['title', 'date', 'lastmod', 'draft', 'tags', 'categories', 'author', 'slug', 'description', 'keywords'];
     const customFields: Record<string, any> = {};
     
     Object.keys(frontmatter).forEach(key => {
@@ -106,6 +108,7 @@ export class HugoIntegration {
       tags,
       categories,
       author,
+      slug,
       state: isDraft ? 'draft' : 'published',
       createdAt: date,
       publishedAt: isDraft ? undefined : date,

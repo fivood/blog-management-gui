@@ -58,11 +58,63 @@ export function registerConfigHandlers(
       
       if (updates.hugoProjectPath) {
         console.log('Updating services with new Hugo project path:', updates.hugoProjectPath);
+        
+        // First, update the project path in config
+        const currentStore = configService['store'].store;
+        currentStore.hugoProjectPath = updates.hugoProjectPath;
+        configService['store'].store = currentStore;
+        
+        // Update all services with new path
         deployService.updateHugoProjectPath(updates.hugoProjectPath);
         hugoService.updateHugoProjectPath(updates.hugoProjectPath);
         articleService.updateHugoProjectPath(updates.hugoProjectPath);
         imageService.updateHugoProjectPath(updates.hugoProjectPath);
         styleService.updateHugoProjectPath(updates.hugoProjectPath);
+        
+        // Load baseURL from the new project's hugo.toml and save to project config
+        try {
+          const hugoConfig = await hugoService.getConfig();
+          if (hugoConfig.baseURL) {
+            console.log('Loaded baseURL from hugo.toml:', hugoConfig.baseURL);
+            
+            // Save baseURL to the NEW project's config
+            const store = configService['store'].store;
+            if (!store.projectConfigs) {
+              store.projectConfigs = {};
+            }
+            if (!store.projectConfigs[updates.hugoProjectPath]) {
+              store.projectConfigs[updates.hugoProjectPath] = {};
+            }
+            store.projectConfigs[updates.hugoProjectPath].baseURL = hugoConfig.baseURL;
+            configService['store'].store = store;
+            
+            console.log('Saved baseURL to project config:', updates.hugoProjectPath);
+          }
+        } catch (error) {
+          console.error('Failed to load baseURL from hugo.toml:', error);
+          // Don't fail the entire config update if baseURL loading fails
+        }
+        
+        // Load project-specific Cloudflare config and update DeployService
+        const updatedConfig = configService.getConfig();
+        if (updatedConfig.cloudflare) {
+          console.log('Updating DeployService with project-specific Cloudflare config');
+          console.log('Project config:', JSON.stringify(updatedConfig.cloudflare, null, 2));
+          deployService.updateConfig(updatedConfig.cloudflare);
+        }
+      }
+      
+      // Sync baseURL to hugo.toml when updated
+      if (updates.baseURL !== undefined) {
+        console.log('Syncing baseURL to hugo.toml:', updates.baseURL);
+        try {
+          await hugoService.updateConfig({ baseURL: updates.baseURL });
+          console.log('✅ Successfully synced baseURL to hugo.toml');
+        } catch (error) {
+          console.error('Failed to sync baseURL to hugo.toml:', error);
+          // Don't fail the entire config update if hugo.toml sync fails
+          // Just log the error and continue
+        }
       }
       
       return {

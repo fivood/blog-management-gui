@@ -1,0 +1,20 @@
+/* Auto-generated theme CSS */
+
+:root {
+  --primary-color: #1e90ff;
+  --background-color: #ffffff;
+  --text-color: #333333;
+  --link-color: #1e90ff;
+  --accent-color: #ff6347;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: 32px;
+}

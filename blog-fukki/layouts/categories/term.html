@@ -1,0 +1,45 @@
+{{- define "main" -}}
+
+<!-- Category heading -->
+<h1 class="mb-14">分类：{{- .Title -}}</h1>
+
+<!-- $pages -->
+{{- $pages := union .RegularPages .Sections -}}
+
+<!-- Articles -->
+{{- $paginator := .Paginate $pages -}}
+{{- range $paginator.Pages -}}
+
+<section class="relative my-10 first-of-type:mt-0 last-of-type:mb-0">
+  {{- if gt .Weight 0 -}}
+  <span class="mb-1 inline-block text-xs tracking-wider text-orange-500"
+    >Featured</span
+  >
+  {{- end -}}
+  <h2 class="my-0!">{{- .Title -}}</h2>
+  <time class="text-xs antialiased opacity-60"
+    >{{- .Date | time.Format ":date_medium" -}}</time
+  >
+  <a class="absolute inset-0 text-[0px]" href="{{- .Permalink -}}"
+    >{{- .Title -}}</a
+  >
+</section>
+{{- end -}}
+
+<!-- Pagination -->
+{{- if gt $paginator.TotalPages 1 -}}
+<nav class="mt-14 flex">
+  {{- if $paginator.HasPrev -}}
+  <a class="btn not-prose" href="{{- $paginator.Prev.URL -}}"
+    >← {{- i18n "prev_page" -}}</a
+  >
+  {{- end -}}
+  {{- if $paginator.HasNext -}}
+  <a class="btn not-prose ml-auto" href="{{- $paginator.Next.URL -}}"
+    >{{- i18n "next_page" -}} →</a
+  >
+  {{- end -}}
+</nav>
+{{- end -}}
+
+{{- end -}}
